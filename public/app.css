@@ -1,0 +1,22 @@
+body {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    ;
+}
+
+.recorder {
+  border-radius: 50%;
+  background-color: #FFFFFF;
+  border: 5vw solid #0088CC;
+  height: 20vw;
+  width: 20vw;
+}
+
+.recorder:active {
+  background-color: #222222;
+}

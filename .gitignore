@@ -1,0 +1,5 @@
+__pycache__/
+node_modules/
+qbhlib.cpython-36m-x86_64-linux-gnu.so
+queries/
+package-lock.json
