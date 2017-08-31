@@ -4,12 +4,13 @@
   "description": "Receiver server for hummed queries",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "source qbh-server/bin/activate & sudo node index.js"
   },
   "author": "fabio gorodscy",
   "license": "MIT",
   "dependencies": {
     "express": "^4.15.4",
+    "forever": "^0.15.3",
     "nconf": "^0.8.2",
     "socket.io": "^1.3.7"
   },

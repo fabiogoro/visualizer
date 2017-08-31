@@ -1,8 +1,5 @@
-import librosa
 import numpy as np
 import csv
-import matplotlib
-import matplotlib.pyplot as plt
 
 class Midi:
     def __init__(self, path, name='', min_dur=225):
@@ -98,7 +95,7 @@ class Midi:
         self.queries['int1d'] = np.concatenate([self.pitch_interval, zero])
         self.queries['ioir1d'] = np.concatenate([self.ioir, zero])
         self.queries['logioir1d'] = np.concatenate([self.logioir, zero])
-        self.queries['countour'] = np.concatenate([self.countour, zero])
+        #self.queries['countour'] = np.concatenate([self.countour, zero])
 
     def get_query(self, qtype='default'):
         return self.queries[qtype]

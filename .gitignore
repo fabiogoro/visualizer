@@ -1,5 +1,10 @@
+asymut/
+*.pem
+*.pyc
 __pycache__/
 node_modules/
-qbhlib.cpython-36m-x86_64-linux-gnu.so
+qbhlib.cpython*
 queries/
 package-lock.json
+qbh-server/
+nohup.out
