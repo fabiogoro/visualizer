@@ -12,8 +12,20 @@ initAudio();
 var socket = io();
 var recorder;
 
+var audio_context = new AudioContext();
+var osc;
 socket.on('ans', function(message) {
   console.log(message);
+  var events = JSON.parse(message);
+  osc = audio_context.createOscillator();
+  osc.start(audio_context.currentTime);
+  osc.connect(audio_context.destination);
+  var i;
+  for(i in events){
+    var frequency = Math.pow(2, (events[i][1] - 69) / 12)*440;
+    osc.frequency.setValueAtTime(frequency, audio_context.currentTime+events[i][0]/1000);
+  }
+  osc.stop(audio_context.currentTime+events[i][0]/1000);
 });
 
 function send() {
