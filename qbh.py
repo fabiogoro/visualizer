@@ -5,6 +5,7 @@ from multiprocessing import Pool
 import time
 from math import ceil
 import sys
+import json
 
 def updatequeue(S, best, K, track):
     for i in range(K):
@@ -15,7 +16,6 @@ def updatequeue(S, best, K, track):
 
 DB = []
 dbfiles = glob.glob("csvFile/*.csv")
-print('Loading db...')
 for file in dbfiles:
     DB.append(Midi(file, file[-13:-8]))
 
@@ -31,7 +31,7 @@ def search_query(query):
             best = 0
             X = song.get_query(qtype)
             best = ql.smbgt(Q, X, 15, 15, 1.1, 0.3, 0.25, 1.0, 0)
-            updatequeue(S, best, K, song.name)
-        print(S)
+            updatequeue(S, best, K, song)
+        print(json.dumps(S[0]['track'].events.tolist()))
 
 search_query(Midi(sys.argv[1],'00001'))

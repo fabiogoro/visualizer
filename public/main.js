@@ -12,8 +12,20 @@ initAudio();
 var socket = io();
 var recorder;
 
+var audio_context = new AudioContext();
+var osc;
 socket.on('ans', function(message) {
   console.log(message);
+  var events = JSON.parse(message);
+  osc = audio_context.createOscillator();
+  osc.start(audio_context.currentTime);
+  osc.connect(audio_context.destination);
+  var i;
+  for(i in events){
+    var frequency = Math.pow(2, (events[i][1] - 69) / 12)*440;
+    osc.frequency.setValueAtTime(frequency, audio_context.currentTime+events[i][0]/1000);
+  }
+  osc.stop(audio_context.currentTime+events[i][0]/1000);
 });
 
 function send() {
@@ -23,16 +35,19 @@ function send() {
   });
 }
 
+function end() {
+  recorder.stopCapture();
+  socket.emit('end', '');
+}
+
 window.onload = function() {
   recorder = new Recorder();
   recorder.turnOn(function(){return});
   var recorderButton = document.getElementById('recorder');
   recorderButton.addEventListener('touchstart', send);
   recorderButton.addEventListener('mousedown', send);
-  recorderButton.addEventListener('mouseup', function() {
-    recorder.stopCapture();
-    socket.emit('end', '');
-  });
+  recorderButton.addEventListener('mouseup', end);
+  recorderButton.addEventListener('touchend', end);
 }
 function Recorder() {
   this.captureContext = new AudioContext();
@@ -123,7 +138,7 @@ Recorder.prototype.startCapture = function(callback) {
 Recorder.prototype.stopCapture = function() {
   this.paused = true;
   this.currentAudioInput.disconnect();
-  document.getElementById('recorder').style.borderWidth = 5+'vw';
+  document.getElementById('recorder').style.borderWidth = 10+'vw';
 };
 
 Recorder.prototype._logVolume = function(buffer, tag) {
