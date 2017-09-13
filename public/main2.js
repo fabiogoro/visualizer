@@ -13,17 +13,10 @@ var socket = io();
 var recorder;
 
 var audio_context = new AudioContext();
-
+var osc;
 socket.on('ans', function(message) {
-  message = JSON.parse(message);
-  document.body.innerHTML = '<button id=res class=player></button><button id=trans class=player></button>';
-  var play_res = document.getElementById('res');
-  play_res.addEventListener('mousedown', function(){play(message['res'])});
-  var play_trans = document.getElementById('trans');
-  play_trans.addEventListener('mousedown', function(){play(message['trans'])});
-});
-
-function play(events) {
+  console.log(message);
+  var events = JSON.parse(message);
   osc = audio_context.createOscillator();
   osc.start(audio_context.currentTime);
   osc.connect(audio_context.destination);
@@ -33,34 +26,18 @@ function play(events) {
     osc.frequency.setValueAtTime(frequency, audio_context.currentTime+events[i][0]/1000);
   }
   osc.stop(audio_context.currentTime+events[i][0]/1000);
-}
+});
 
-var vec;
 function send() {
-  vec = [];
+  socket.emit('init', '');
   recorder.startCapture(function(stream, streamInfo) {
-    vec = vec.concat(stream);
+    socket.emit('talk', { stream: stream, streamInfo: streamInfo });
   });
 }
 
 function end() {
-  var sr = 8000;
-  var n = vec.length;
-  vec = new Float32Array(vec);
-  var buffer = audio_context.createBuffer(1, n, audio_context.sampleRate);
-  buffer.copyToChannel(vec, 0, 0);
-
-  var resampler = new OfflineAudioContext(1,n*sr/44100,sr);
-  source = resampler.createBufferSource();
-  source.buffer = buffer;
-  source.connect(resampler.destination);
-  source.start();
-  resampler.startRendering().then(function(renderedBuffer) {
-    socket.emit('record', { stream: Array.apply([], renderedBuffer.getChannelData(0)) });
-  });
-
   recorder.stopCapture();
-  vec = [];
+  socket.emit('end', '');
 }
 
 window.onload = function() {
@@ -72,7 +49,6 @@ window.onload = function() {
   recorderButton.addEventListener('mouseup', end);
   recorderButton.addEventListener('touchend', end);
 }
-
 function Recorder() {
   this.captureContext = new AudioContext();
   this.currentCaptureStream = null;
@@ -103,15 +79,22 @@ Recorder.prototype.turnOn = function(callback) {
     self._setupCapture(stream);
     callback(self);
   }, function(error) {
-    alert('No access to microphone, it won\'t be possible to record audio.');
+    alert('No mic.');
   });
 };
 
 Recorder.prototype._setupCapture = function(stream) {
   var self = this;
   self.currentAudioInput = self.captureContext.createMediaStreamSource(stream);
-  self.currentCaptureProcessorNode = self.captureContext.createScriptProcessor(1024, 1, 1);
-  self.currentCaptureStream = stream;
+  self.currentCaptureProcessorNode = self.captureContext.createScriptProcessor(8192, 1, 1);
+  /*self.biquadFilter = self.captureContext.createBiquadFilter();
+  self.biquadFilter.type = "lowpass";
+  self.biquadFilter.frequency.value = 8000;
+  self.analyser = self.captureContext.createAnalyser();
+  self.analyser.fftSize = 8192*2;
+  self.dataArray = new Uint8Array(self.analyser.frequencyBinCount)
+  self.biquadFilter.connect(self.analyser);
+  */self.currentCaptureStream = stream;
   stream.onended = function() {
     self.currentAudioInput.disconnect();
     self.currentAudioInput = null;
@@ -128,17 +111,42 @@ Recorder.prototype.turnOff = function(callback) {
 };
 
 Recorder.prototype.startCapture = function(callback) {
+  var sr = 8000;
   var self = this;
   self.paused = false;
 
   self.currentCaptureProcessorNode.onaudioprocess = function(e) {
     var buffer = e.inputBuffer;
-    buffer = buffer.getChannelData(0);
-    self._logVolume(buffer);
-    callback(Array.apply([], buffer), {
-      sampleRate: self.captureContext.sampleRate,
-      channels: 1
+
+    var offlineCtx = new OfflineAudioContext(1,8192*sr/44100,sr);
+    var analyser = offlineCtx.createAnalyser();
+    analyser.fftSize = 8192*2;
+    var dataArray = new Uint8Array(analyser.frequencyBinCount)
+    source = offlineCtx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(offlineCtx.destination);
+    source.start();
+    offlineCtx.startRendering().then(function(renderedBuffer) {
+      //console.log('Rendering completed successfully');
+      analyser.getByteTimeDomainData(dataArray);
+      buffer = renderedBuffer.getChannelData(0);
+      var intBuffer = new Uint32Array(buffer.length);
+      buffer.map(function(f, i) {intBuffer[i] = f * Math.pow(2, 16) / 2;});
+      console.log(intBuffer);
+      callback(Array.apply([], intBuffer), {
+        sampleRate: self.captureContext.sampleRate,
+        channels: 1
+      });
+      self._logVolume(buffer, "in");
+    }).catch(function(err) {
+      console.log('Rendering failed: ' + err);
     });
+
+    //var buffer = e.inputBuffer.getChannelData(0);
+    //var buffer = resample(e.inputBuffer, e.inputBuffer.length, 8000);
+    //var buffer = self.dataArray.filter((value, index, Arr) => {return index % downsampleRate == 0;});
+    //buffer = self.dataArray;
+
     if (self.paused) {
       self.currentCaptureProcessorNode.disconnect(); //Wait to disconnect once the buffer has finished processing
     }
@@ -161,6 +169,26 @@ Recorder.prototype._logVolume = function(buffer, tag) {
     sum += currentValue * currentValue;
   }
   var rms = Math.sqrt(sum / buffer.length);
-  var width = rms*10+10+'vh';
+  var width = rms*100+15+'vw';
   document.getElementById('recorder').style.borderWidth = width;
 };
+
+
+
+// define online and offline audio context
+async function resample(buffer, sr){
+  var offlineCtx = new OfflineAudioContext(1,sr,sr);
+  source = offlineCtx.createBufferSource();
+  source.buffer = buffer;
+  source.connect(offlineCtx.destination);
+  source.start();
+  await offlineCtx.startRendering().then(function(renderedBuffer) {
+    //console.log('Rendering completed successfully');
+    buffer = renderedBuffer;
+  }).catch(function(err) {
+    //console.log('Rendering failed: ' + err);
+    return null;
+  });
+  console.log(buffer.length);
+  return buffer;
+}

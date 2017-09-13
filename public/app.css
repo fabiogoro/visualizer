@@ -10,6 +10,16 @@ html, body {
     padding: 0;
 }
 
+.player {
+  width: 0;
+	height: 0;
+	border-top: 50px solid #FFFFFF;
+	border-left: 100px solid #222222;
+	border-right: 0;
+	border-bottom: 50px solid #FFFFFF;
+  background-color: #FFFFFF;
+}
+
 .recorder {
   position: absolute;
   border-radius: 50%;

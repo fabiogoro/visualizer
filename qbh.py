@@ -17,7 +17,7 @@ def updatequeue(S, best, K, track):
 DB = []
 dbfiles = glob.glob("csvFile/*.csv")
 for file in dbfiles:
-    DB.append(Midi(file, file[-13:-8]))
+    DB.append(Midi(file, file[-13:-8], 1))
 
 def search_query(query):
     qtype='int1d'
@@ -32,6 +32,6 @@ def search_query(query):
             X = song.get_query(qtype)
             best = ql.smbgt(Q, X, 15, 15, 1.1, 0.3, 0.25, 1.0, 0)
             updatequeue(S, best, K, song)
-        print(json.dumps(S[0]['track'].events.tolist()))
+        print(json.dumps({'res': S[0]['track'].events.tolist(), 'trans': query.events.tolist()}))
 
 search_query(Midi(sys.argv[1],'00001'))

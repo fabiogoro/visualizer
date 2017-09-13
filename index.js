@@ -4,10 +4,9 @@ var express = require('express'),
   io = require('socket.io'),
   fs = require('fs'),
   nconf = require('nconf'),
-  wav = require('wav');
+  header = require('waveheader');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
-var buffer;
 
 const options = {
   key: fs.readFileSync('key.pem'),
@@ -28,17 +27,40 @@ redirectApp.use(function requireHTTPS(req, res, next) {
 
 redirectServer.listen(80);
 
-function write(path){
-	var writer = new wav.FileWriter(path, {channels: 1, bitDepth: 8, sampleRate: 11025});
-	writer.write(new Buffer(buffer));
-	writer.end();
+function write(path, msg){
+  var file = fs.createWriteStream(path);
+  var buffer;
+
+  var data = Int16Array.from(msg.stream, function (val) {
+    return val*32768;
+  });
+
+  var size = data.length*2;
+  file.write(header(size, {
+    bitDepth: 16,
+    sampleRate: 8000,
+    channels: 1
+  }));
+
+  if (Buffer.allocUnsafe) { 
+    buffer = Buffer.allocUnsafe(size);
+  } else {
+    buffer = new Buffer(size);
+  }
+
+  data.forEach(function (value, index) {
+    buffer.writeInt16LE(value, index * 2)
+  });
+
+  file.write(buffer);
+  file.end();
 }
 
-async function run(path, socket) {
-  await write(path);
+async function run(path, socket, msg){
+  await write(path, msg);
   await exec('echo querying...');
   await exec('asymut -w 256 -s 64 -i '+path+' | peak_filter | pda | pitch2note > '+path+'.csv');
-  const { stdout } = await exec('qbh-server/bin/python qbh.py '+path+'.csv');
+  const { stdout } = await exec('python3 qbh.py '+path+'.csv');
   socket.emit('ans', stdout);
 }
 
@@ -50,27 +72,16 @@ nconf.argv()
 
 app.use(express.static('public'));
 
-
 var port = process.env.PORT || nconf.get('server:port');
 var server = https.createServer(options, app).listen(port, function () {
   console.log('listening on *:', port);
 });
 io = io.listen(server);
 
-
 io.on('connection', function(socket) {
-  socket.join('walkie-talkie');
 
-  socket.on('talk', function(msg) {
-    buffer = buffer.concat(msg.stream);
-  });
-  socket.on('init', function() {
-    buffer = [];
-  });
-  socket.on('end', function() {
+  socket.on('record', function(msg) {
     var path = 'queries/'+socket.id+'.wav';
-    run(path, socket);
+    run(path, socket, msg);
   });
 });
-
-
