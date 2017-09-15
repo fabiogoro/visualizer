@@ -14,9 +14,30 @@ var recorder;
 
 var audio_context = new AudioContext();
 
+function draw(canvas_context, array, last_tick){
+  canvas_context.fillStyle = 'black';
+  var last_time = 0;
+  for(i in array){
+    var pitch = array[i][1];
+    var time = array[i][0];
+    canvas_context.fillRect(last_time/last_tick*800, pitch/127*100, (time-last_time)/last_tick*800, 3);
+    last_time = time;
+  }
+}
+
 socket.on('ans', function(message) {
   message = JSON.parse(message);
   document.body.innerHTML = '<button id=res class=player></button><button id=trans class=player></button>';
+  var canvas_res = document.createElement("canvas");
+  canvas_res.width = 800;
+  canvas_res.height = 100;
+  document.body.appendChild(canvas_res);
+  draw(canvas_res.getContext('2d'), message['res'], message['res'][message['res'].length-1][0]);
+  var canvas_trans = document.createElement("canvas");
+  canvas_trans.width = 800;
+  canvas_trans.height = 100;
+  document.body.appendChild(canvas_trans);
+  draw(canvas_trans.getContext('2d'), message['trans'], message['res'][message['res'].length-1][0]);
   var play_res = document.getElementById('res');
   play_res.addEventListener('mousedown', function(){play(message['res'])});
   var play_trans = document.getElementById('trans');
