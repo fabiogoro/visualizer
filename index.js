@@ -27,7 +27,7 @@ redirectApp.use(function requireHTTPS(req, res, next) {
 
 redirectServer.listen(80);
 
-function write(path, msg){
+function write(path, msg, callback){
   var file = fs.createWriteStream(path);
   var buffer;
 
@@ -38,7 +38,7 @@ function write(path, msg){
   var size = data.length*2;
   file.write(header(size, {
     bitDepth: 16,
-    sampleRate: 8000,
+    sampleRate: 44100,
     channels: 1
   }));
 
@@ -52,16 +52,45 @@ function write(path, msg){
     buffer.writeInt16LE(value, index * 2)
   });
 
-  file.write(buffer);
+  file.write(buffer, callback);
   file.end();
 }
 
-async function run(path, socket, msg){
-  await write(path, msg);
-  await exec('echo querying...');
-  await exec('asymut -w 256 -s 64 -i '+path+' | peak_filter | pda | pitch2note > '+path+'.csv');
-  const { stdout } = await exec('python3 qbh.py '+path+'.csv');
-  socket.emit('ans', stdout);
+var syscall = function(cmd, callback) {
+  exec(cmd, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`exec error: ${error}`);
+      return;
+    }
+
+    callback(stdout);
+  });
+}
+
+function run_nowrite(path, socket){
+  //exec('asymut -w 256 -s 64 -i '+path+' | peak_filter | pda | pitch2note > '+path+'.csv', function(err, out){
+  console.log(path)
+  exec('python3 audio_to_midi_melodia.py '+path+' '+path+'.mid 130 --minduration 0.1 --smooth 0.5', function(err, out){
+    exec('midicsv '+path+'.mid '+path+'.csv', function(err, out){
+      exec('python3 qbh_dtw.py '+path+'.csv', function(err, out){
+        socket.emit('ans', out);
+      });
+    });
+  });
+}
+
+function run(path, socket, msg){
+  write(path, msg, function(){
+  console.log(path)
+    //exec('asymut -w 256 -s 64 -i '+path+' | peak_filter | pda | pitch2note > '+path+'.csv', function(err, out){
+    exec('python3 audio_to_midi_melodia.py '+path+' '+path+'.mid 130 --minduration 0.04 --smooth 0.5', function(err, out){
+      exec('midicsv '+path+'.mid '+path+'.csv', function(err, out){
+        exec('python3 qbh.py '+path+'.csv', function(err, out){
+          socket.emit('ans', out);
+        });
+      });
+    });
+  });
 }
 
 nconf.argv()
@@ -79,6 +108,10 @@ var server = https.createServer(options, app).listen(port, function () {
 io = io.listen(server);
 
 io.on('connection', function(socket) {
+  socket.on('test', function(){
+    var path = 'queries/6_-EfdjB82exiyrjAAAc.wav';
+    run_nowrite(path, socket);
+  });
 
   socket.on('record', function(msg) {
     var path = 'queries/'+socket.id+'.wav';

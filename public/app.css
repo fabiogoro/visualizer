@@ -1,4 +1,4 @@
-html, body {
+html, body, #player {
     position: fixed;
     top: 0;
     right: 0;
@@ -13,10 +13,12 @@ html, body {
 .player {
   width: 0;
 	height: 0;
-	border-top: 50px solid #FFFFFF;
-	border-left: 100px solid #222222;
+  margin-top: 1vh;
+  margin-left: 1vh;
+	border-top: 15vh solid #FFFFFF;
+	border-left: 30vh solid #222222;
 	border-right: 0;
-	border-bottom: 50px solid #FFFFFF;
+	border-bottom: 15vh solid #FFFFFF;
   background-color: #FFFFFF;
 }
 
@@ -25,12 +27,18 @@ html, body {
   border-radius: 50%;
   background-color: #FFFFFF;
   border: 10vh solid #0088CC;
-  height: 50vh;
-  width: 50vh;
-  top: 20vh;
-  left: 10vw;
+  height: 30vh;
+  width: 30vh;
+  top: 1vh;
+  left: 30vw;
+  z-index: 10;
 }
 
 .recorder:active {
   background-color: #222222;
+}
+
+.visualizer {
+  width: 100%;
+  height: 90%;
 }

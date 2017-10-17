@@ -27,7 +27,7 @@ function draw(element, array, last_tick){
     var time = array[i][0];
     if(array[i][2]==0){
       var pitch = array[i][1];
-      canvas_context.fillRect(Math.floor(last_time/last_tick*element.width), 100-pitch/127*100, Math.floor((time-last_time)/last_tick*element.width), 3);
+      canvas_context.fillRect(Math.floor(last_time/last_tick*element.width), pitch%12/12*100, Math.floor((time-last_time)/last_tick*element.width), 10);
     }
     last_time = time;
   }
@@ -57,9 +57,8 @@ function marker(element){
 
 socket.on('ans', function(message) {
   message = JSON.parse(message);
-  var player = document.getElementById("player");
-  player.innerHTML = '';
-  /*var button_res = document.createElement("button");
+  document.body.innerHTML = '';
+  var button_res = document.createElement("button");
   button_res.setAttribute("id", "res");
   button_res.setAttribute("class", "player");
   document.body.appendChild(button_res);
@@ -68,15 +67,16 @@ socket.on('ans', function(message) {
   canvas_res.setAttribute("class", "visualizer");
   draw(canvas_res, message['res'], message['res'][message['res'].length-1][0]);
   document.body.appendChild(canvas_res);
-  */var button_trans = document.createElement("button");
+  var button_trans = document.createElement("button");
   button_trans.setAttribute("id", "trans");
   button_trans.setAttribute("class", "player");
-  player.appendChild(button_trans);
+  document.body.appendChild(button_trans);
   var canvas_trans = document.createElement("canvas");
   canvas_trans.setAttribute("id", "canvas_trans");
   canvas_trans.setAttribute("class", "visualizer");
-  draw(canvas_trans, message['trans'], message['trans'][message['trans'].length-1][0]);
-  player.appendChild(canvas_trans);
+  draw(canvas_trans, message['trans'], message['res'][message['res'].length-1][0]);
+  document.body.appendChild(canvas_trans);
+  button_res.addEventListener('mousedown', function(){play(message['res'], '_res')});
   button_trans.addEventListener('mousedown', function(){play(message['trans'], '_trans')});
 });
 
@@ -85,23 +85,13 @@ function play(events, which) {
   if(playing == false){
     playing = true;
     osc = audio_context.createOscillator();
-    volume = audio_context.createGain();
-    volume.gain.value = 0.1;
     osc.start(audio_context.currentTime);
-    volume.connect(audio_context.destination);
-    osc.connect(volume);
+    osc.connect(audio_context.destination);
     osc.frequency.setValueAtTime(0, audio_context.currentTime);
     var i;
-    var last_frequency = null;
-    var last_time = 0;
     for(i in events){
-      var time = audio_context.currentTime+events[i][0]/1000;
-      var frequency = Math.pow(2, (events[i][1])/12)*22.5;
-      if(frequency != last_frequency && time-last_time>0.05) {
-        osc.frequency.setValueAtTime(frequency, time);
-        last_time = time;
-        last_frequency = frequency;
-      }
+      var frequency = Math.pow(2, (events[i][1]%12) / 12)*440;
+      osc.frequency.setValueAtTime(frequency, audio_context.currentTime+events[i][0]/1000);
     }
     osc.stop(audio_context.currentTime+events[i][0]/1000);
     time_count = 0;
@@ -120,8 +110,7 @@ function send() {
 }
 
 function end() {
-  socket.emit('record', { stream: vec });
-  /*var sr = 44100;
+  var sr = 8000;
   var n = vec.length;
   vec = new Float32Array(vec);
   var buffer = audio_context.createBuffer(1, n, audio_context.sampleRate);
@@ -135,7 +124,7 @@ function end() {
   resampler.startRendering().then(function(renderedBuffer) {
     socket.emit('record', { stream: Array.apply([], renderedBuffer.getChannelData(0)) });
   });
-*/
+
   recorder.stopCapture();
   vec = [];
 }
