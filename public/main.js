@@ -21,7 +21,7 @@ var lt;
 var time_count;
 function draw(element, array, last_tick){
   canvas_context = element.getContext('2d');
-  canvas_context.fillStyle = '#222222';
+  canvas_context.fillStyle = '#0088CC';
   var last_time = array[0][0];
   for(i in array){
     var time = array[i][0];
@@ -52,6 +52,7 @@ function marker(element){
     canvas_context.clearRect(last_time-jump,0,2,100);
     canvas_context.putImageData(last_image,last_time-jump,0);
     playing=false;
+    document.getElementById("trans").disabled = false;
   }
 }
 
@@ -83,8 +84,10 @@ socket.on('ans', function(message) {
 var playing = false;
 function play(events, which) {
   if(playing == false){
+    document.getElementById("trans").disabled = true;
     playing = true;
     osc = audio_context.createOscillator();
+    osc.type = 'sawtooth';
     volume = audio_context.createGain();
     volume.gain.value = 0.1;
     osc.start(audio_context.currentTime);
@@ -97,11 +100,13 @@ function play(events, which) {
     for(i in events){
       var time = audio_context.currentTime+events[i][0]/1000;
       var frequency = Math.pow(2, (events[i][1])/12)*22.5;
-      if(frequency != last_frequency && time-last_time>0.05) {
+      //if(frequency != last_frequency && time-last_time>0.05) {
+        if(events[i][2]==0) volume.gain.linearRampToValueAtTime(0, time);
+        else volume.gain.linearRampToValueAtTime(0.1, time);
         osc.frequency.setValueAtTime(frequency, time);
         last_time = time;
         last_frequency = frequency;
-      }
+      //}
     }
     osc.stop(audio_context.currentTime+events[i][0]/1000);
     time_count = 0;

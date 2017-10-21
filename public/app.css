@@ -1,32 +1,45 @@
 html, body, #player {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    height: 97vh;
-    width: 97vw;
-    margin: 0;
-    padding: 0;
+  background-color: #222;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 97vh;
+  width: 97vw;
+  margin: 0;
+  padding: 0;
 }
 
 .player {
   width: 0;
-	height: 0;
+  height: 0;
   margin-top: 1vh;
   margin-left: 1vh;
-	border-top: 15vh solid #FFFFFF;
-	border-left: 30vh solid #222222;
-	border-right: 0;
-	border-bottom: 15vh solid #FFFFFF;
-  background-color: #FFFFFF;
+  border-top: 15vh solid #222222;
+  border-left: 30vh solid #666666;
+  border-right: 0;
+  border-bottom: 15vh solid #222222;
+  background-color: #222222;
+}
+
+.player:disabled {
+  width: 0;
+  height: 0;
+  margin-top: 1vh;
+  margin-left: 1vh;
+  border-top: 15vh solid #222222;
+  border-left: 30vh solid #0088CC;
+  border-right: 0;
+  border-bottom: 15vh solid #222222;
+  background-color: #222222;
 }
 
 .recorder {
   position: absolute;
   border-radius: 50%;
-  background-color: #FFFFFF;
-  border: 10vh solid #0088CC;
+  background-color: #222222;
+  border: 10vh solid #666666;
   height: 30vh;
   width: 30vh;
   top: 1vh;
@@ -35,7 +48,8 @@ html, body, #player {
 }
 
 .recorder:active {
-  background-color: #222222;
+  background-color: #CCCCCC;
+  border: 10vh solid #0088CC;
 }
 
 .visualizer {
